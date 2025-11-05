@@ -1,6 +1,3 @@
-# Makefile для компиляции программы вычисления π (MS-MPI + MinGW)
-# Если не заданы переменные MSMPI_INC / MSMPI_LIB, используются пути по умолчанию.
-
 MSMPI_INC ?= C:/Program Files (x86)/Microsoft SDKs/MPI/Include
 MSMPI_LIB ?= C:/Program Files (x86)/Microsoft SDKs/MPI/Lib/x64
 

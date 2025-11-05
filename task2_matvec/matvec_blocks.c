@@ -1,11 +1,3 @@
-/**
- * Умножение матрицы на вектор с распределением по БЛОКАМ
- * Матрица разбивается на прямоугольные блоки
- * 
- * Компиляция: mpicc -o matvec_blocks.exe matvec_blocks.c -lm
- * Запуск: mpiexec -n <num_procs> matvec_blocks.exe <matrix_size>
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
@@ -48,12 +40,10 @@ int main(int argc, char *argv[]) {
     }
     
     N = atoi(argv[1]);
-    
-    // Создание 2D сетки процессов (приближённо квадратной)
+
     grid_rows = (int)sqrt(size);
     grid_cols = size / grid_rows;
-    
-    // Если размер не идеально делится, корректируем
+
     while (grid_rows * grid_cols < size) {
         grid_cols++;
     }
@@ -63,18 +53,15 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Warning: Using %d out of %d processes\n", grid_rows * grid_cols, size);
         }
     }
-    
-    // Определение позиции процесса в сетке
+
     block_row = rank / grid_cols;
     block_col = rank % grid_cols;
-    
-    // Если процесс за пределами сетки, он не участвует
+
     if (rank >= grid_rows * grid_cols) {
         MPI_Finalize();
         return 0;
     }
-    
-    // Размеры локального блока
+
     local_rows = N / grid_rows;
     local_cols = N / grid_cols;
     
@@ -83,8 +70,7 @@ int main(int argc, char *argv[]) {
     
     if (block_row < row_remainder) local_rows++;
     if (block_col < col_remainder) local_cols++;
-    
-    // Главный процесс инициализирует данные
+
     if (rank == 0) {
         matrix = (double*)malloc(N * N * sizeof(double));
         vector = (double*)malloc(N * sizeof(double));
@@ -104,10 +90,8 @@ int main(int argc, char *argv[]) {
     
     MPI_Barrier(MPI_COMM_WORLD);
     start_time = MPI_Wtime();
-    
-    // Распределение блоков матрицы и вектора
+
     if (rank == 0) {
-        // Вычисление начальных позиций для каждого процесса
         for (int p = 0; p < grid_rows * grid_cols && p < size; p++) {
             int p_row = p / grid_cols;
             int p_col = p % grid_cols;
@@ -119,16 +103,14 @@ int main(int argc, char *argv[]) {
             
             int start_row = p_row * (N / grid_rows) + (p_row < row_remainder ? p_row : row_remainder);
             int start_col = p_col * (N / grid_cols) + (p_col < col_remainder ? p_col : col_remainder);
-            
-            // Извлечение блока матрицы
+
             double *block = (double*)malloc(p_local_rows * p_local_cols * sizeof(double));
             for (int i = 0; i < p_local_rows; i++) {
                 for (int j = 0; j < p_local_cols; j++) {
                     block[i * p_local_cols + j] = matrix[(start_row + i) * N + (start_col + j)];
                 }
             }
-            
-            // Извлечение части вектора
+
             double *vec_part = (double*)malloc(p_local_cols * sizeof(double));
             for (int j = 0; j < p_local_cols; j++) {
                 vec_part[j] = vector[start_col + j];
@@ -153,16 +135,14 @@ int main(int argc, char *argv[]) {
         MPI_Recv(local_matrix, local_rows * local_cols, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         MPI_Recv(local_vector, local_cols, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
-    
-    // Локальное умножение блока на часть вектора
+
     for (int i = 0; i < local_rows; i++) {
         local_result[i] = 0.0;
         for (int j = 0; j < local_cols; j++) {
             local_result[i] += local_matrix[i * local_cols + j] * local_vector[j];
         }
     }
-    
-    // Сбор результатов по строкам (процессы в одной строке сетки суммируют свои результаты)
+
     MPI_Comm row_comm, col_comm;
     MPI_Comm_split(MPI_COMM_WORLD, block_row, rank, &row_comm);
     MPI_Comm_split(MPI_COMM_WORLD, block_col, rank, &col_comm);
@@ -173,8 +153,7 @@ int main(int argc, char *argv[]) {
     }
     
     MPI_Reduce(local_result, row_result, local_rows, MPI_DOUBLE, MPI_SUM, 0, row_comm);
-    
-    // Главный столбец собирает результаты (используем col_comm для процессов с block_col==0)
+
     if (block_col == 0) {
         if (rank == 0) {
             int *recvcounts = (int*)malloc(grid_rows * sizeof(int));

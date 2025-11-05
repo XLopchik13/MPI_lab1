@@ -1,11 +1,3 @@
-/**
- * Умножение матрицы на вектор с распределением по СТРОКАМ
- * Каждый процесс обрабатывает свою часть строк матрицы
- * 
- * Компиляция: mpicc -o matvec_rows.exe matvec_rows.c -lm
- * Запуск: mpiexec -n <num_procs> matvec_rows.exe <matrix_size>
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
@@ -23,7 +15,7 @@ void initialize_matrix_vector(double *matrix, double *vector, int rows, int cols
 
 int main(int argc, char *argv[]) {
     int rank, size;
-    int N; // Размер матрицы N×N
+    int N;
     int local_rows;
     double *matrix = NULL;
     double *vector = NULL;
@@ -47,17 +39,14 @@ int main(int argc, char *argv[]) {
     }
     
     N = atoi(argv[1]);
-    
-    // Расчёт распределения строк
+
     local_rows = N / size;
     int remainder = N % size;
-    
-    // Корректировка для неравномерного распределения
+
     if (rank < remainder) {
         local_rows++;
     }
-    
-    // Главный процесс инициализирует данные
+
     if (rank == 0) {
         matrix = (double*)malloc(N * N * sizeof(double));
         vector = (double*)malloc(N * sizeof(double));
@@ -65,8 +54,7 @@ int main(int argc, char *argv[]) {
         
         srand(time(NULL));
         initialize_matrix_vector(matrix, vector, N, N);
-        
-        // Подготовка массивов для Scatterv
+
         sendcounts = (int*)malloc(size * sizeof(int));
         displs = (int*)malloc(size * sizeof(int));
         
@@ -79,32 +67,27 @@ int main(int argc, char *argv[]) {
             offset += sendcounts[i];
         }
     }
-    
-    // Выделение памяти для локальных данных
+
     local_matrix = (double*)malloc(local_rows * N * sizeof(double));
     local_result = (double*)malloc(local_rows * sizeof(double));
     vector = (double*)malloc(N * sizeof(double));
     
     MPI_Barrier(MPI_COMM_WORLD);
     start_time = MPI_Wtime();
-    
-    // Рассылка вектора всем процессам
+
     MPI_Bcast(vector, N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    
-    // Распределение строк матрицы между процессами
+
     MPI_Scatterv(matrix, sendcounts, displs, MPI_DOUBLE,
                  local_matrix, local_rows * N, MPI_DOUBLE,
                  0, MPI_COMM_WORLD);
-    
-    // Локальное умножение матрицы на вектор
+
     for (int i = 0; i < local_rows; i++) {
         local_result[i] = 0.0;
         for (int j = 0; j < N; j++) {
             local_result[i] += local_matrix[i * N + j] * vector[j];
         }
     }
-    
-    // Сбор результатов
+
     if (rank == 0) {
         int *recvcounts = (int*)malloc(size * sizeof(int));
         int *recvdispls = (int*)malloc(size * sizeof(int));

@@ -1,8 +1,3 @@
-"""
-Автоматический запуск экспериментов для обеих задач
-Запускает программы с разными параметрами и сохраняет результаты
-"""
-
 import subprocess
 import os
 import sys
@@ -10,18 +5,17 @@ import time
 from pathlib import Path
 import shutil
 
-# Конфигурация экспериментов
 CONFIG = {
     'task1_pi': {
         'executable': '../task1_pi/pi_monte_carlo.exe',
         'processes': [1, 2, 4, 8],
         'parameters': [
-            1000000,    # 1M точек
-            5000000,    # 5M точек
-            10000000,   # 10M точек
-            20000000,   # 20M точек
+            1000000,
+            5000000,
+            10000000,
+            20000000,
         ],
-        'repeats': 3,  # Количество повторений для усреднения
+        'repeats': 3,
     },
     'task2_matvec': {
         'executables': {
@@ -31,17 +25,17 @@ CONFIG = {
         },
         'processes': [1, 2, 4, 8],
         'parameters': [
-            1000,   # 1000x1000
-            2000,   # 2000x2000
-            3000,   # 3000x3000
-            5000,   # 5000x5000
+            1000,
+            2000,
+            5000,
+            10000,
+            15000,
         ],
         'repeats': 3,
     }
 }
 
 def run_command(command, timeout=300):
-    """Запуск команды и захват вывода"""
     try:
         result = subprocess.run(
             command,
@@ -57,7 +51,6 @@ def run_command(command, timeout=300):
         return None, str(e), -1
 
 def parse_csv_output(output):
-    """Извлечение CSV строки из вывода"""
     lines = output.strip().split('\n')
     for line in lines:
         if line.startswith('CSV,'):
@@ -65,7 +58,6 @@ def parse_csv_output(output):
     return None
 
 def run_task1_experiments(output_dir, mpiexec_available):
-    """Запуск экспериментов для задачи 1 (вычисление π)"""
     print("=" * 60)
     print("ЗАДАЧА 1: Вычисление π методом Монте-Карло")
     print("=" * 60)
@@ -96,7 +88,7 @@ def run_task1_experiments(output_dir, mpiexec_available):
                 stdout, stderr, returncode = run_command(cmd)
                 
                 if returncode != 0:
-                    print(f"  ❌ ОШИБКА: {stderr}")
+                    print(f"ОШИБКА: {stderr}")
                     continue
                 
                 csv_line = parse_csv_output(stdout)
@@ -151,10 +143,10 @@ def run_task2_experiments(output_dir, mpiexec_available):
                         cmd = f"{executable} {size}"
                     else:
                         cmd = f"mpiexec -n {procs} {executable} {size}"
-                    stdout, stderr, returncode = run_command(cmd, timeout=600)
+                    stdout, stderr, returncode = run_command(cmd, timeout=900)
                     
                     if returncode != 0:
-                        print(f"  ❌ ОШИБКА: {stderr}")
+                        print(f"ОШИБКА: {stderr}")
                         continue
                     
                     csv_line = parse_csv_output(stdout)
@@ -200,7 +192,7 @@ def main():
             missing_files.append(exe)
     
     if missing_files:
-        print("\n❌ ОШИБКА: Не найдены следующие файлы:")
+        print("\nОШИБКА: Не найдены следующие файлы:")
         for f in missing_files:
             print(f"  - {f}")
         print("\nСкомпилируйте программы перед запуском экспериментов:")

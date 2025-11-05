@@ -1,11 +1,3 @@
-/**
- * Умножение матрицы на вектор с распределением по СТОЛБЦАМ
- * Каждый процесс обрабатывает свою часть столбцов матрицы
- * 
- * Компиляция: mpicc -o matvec_cols.exe matvec_cols.c -lm
- * Запуск: mpiexec -n <num_procs> matvec_cols.exe <matrix_size>
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
@@ -45,16 +37,14 @@ int main(int argc, char *argv[]) {
     }
     
     N = atoi(argv[1]);
-    
-    // Распределение столбцов
+
     local_cols = N / size;
     int remainder = N % size;
     
     if (rank < remainder) {
         local_cols++;
     }
-    
-    // Главный процесс инициализирует данные
+
     if (rank == 0) {
         matrix = (double*)malloc(N * N * sizeof(double));
         vector = (double*)malloc(N * sizeof(double));
@@ -62,24 +52,20 @@ int main(int argc, char *argv[]) {
         
         srand(time(NULL));
         initialize_matrix_vector(matrix, vector, N, N);
-        
-        // Инициализация результата нулями
+
         for (int i = 0; i < N; i++) {
             result[i] = 0.0;
         }
     }
-    
-    // Локальные массивы
+
     local_vector = (double*)malloc(local_cols * sizeof(double));
     local_result = (double*)malloc(N * sizeof(double));
-    
-    // Временная матрица для столбцов
+
     double *local_matrix_cols = (double*)malloc(N * local_cols * sizeof(double));
     
     MPI_Barrier(MPI_COMM_WORLD);
     start_time = MPI_Wtime();
-    
-    // Распределение части вектора
+
     int *sendcounts_vec = NULL;
     int *displs_vec = NULL;
     
@@ -100,11 +86,8 @@ int main(int argc, char *argv[]) {
     MPI_Scatterv(vector, sendcounts_vec, displs_vec, MPI_DOUBLE,
                  local_vector, local_cols, MPI_DOUBLE,
                  0, MPI_COMM_WORLD);
-    
-    // Распределение столбцов матрицы
-    // Каждый процесс получает свои столбцы
+
     if (rank == 0) {
-        // Отправка столбцов каждому процессу
         for (int p = 0; p < size; p++) {
             int start_col = displs_vec[p];
             int num_cols = sendcounts_vec[p];
@@ -129,16 +112,14 @@ int main(int argc, char *argv[]) {
     } else {
         MPI_Recv(local_matrix_cols, N * local_cols, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
-    
-    // Локальное вычисление частичного результата
+
     for (int i = 0; i < N; i++) {
         local_result[i] = 0.0;
         for (int j = 0; j < local_cols; j++) {
             local_result[i] += local_matrix_cols[i * local_cols + j] * local_vector[j];
         }
     }
-    
-    // Суммирование частичных результатов
+
     MPI_Reduce(local_result, result, N, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
     
     MPI_Barrier(MPI_COMM_WORLD);

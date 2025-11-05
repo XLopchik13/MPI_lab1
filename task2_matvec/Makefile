@@ -1,6 +1,3 @@
-# Makefile для компиляции программ умножения матрицы на вектор (MS-MPI + MinGW)
-# Используются переменные MSMPI_INC / MSMPI_LIB при наличии.
-
 MSMPI_INC ?= C:/Program Files (x86)/Microsoft SDKs/MPI/Include
 MSMPI_LIB ?= C:/Program Files (x86)/Microsoft SDKs/MPI/Lib/x64
 
