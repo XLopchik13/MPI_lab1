@@ -1,5 +1,4 @@
 import subprocess
-import os
 import sys
 import time
 from pathlib import Path
@@ -79,9 +78,8 @@ def run_task1_experiments(output_dir, mpiexec_available):
                 
                 if not mpiexec_available:
                     if procs != 1:
-                        print(f"  ⏭ Пропуск (mpiexec недоступен, процессы={procs})")
+                        print(f"Пропуск (mpiexec недоступен, процессы={procs})")
                         continue
-                    # Однопроцессный запуск без mpiexec
                     cmd = f"{config['executable']} {points}"
                 else:
                     cmd = f"mpiexec -n {procs} {config['executable']} {points}"
@@ -93,7 +91,6 @@ def run_task1_experiments(output_dir, mpiexec_available):
                 
                 csv_line = parse_csv_output(stdout)
                 if csv_line:
-                    # CSV,size,points,time,pi_estimate
                     parts = csv_line.split(',')
                     if len(parts) >= 5:
                         procs_val = parts[1]
@@ -104,16 +101,15 @@ def run_task1_experiments(output_dir, mpiexec_available):
                         with open(results_file, 'a') as f:
                             f.write(f"{procs_val},{points_val},{time_val},{pi_val},{repeat+1}\n")
                         
-                        print(f"  ✓ Время: {time_val}s, π ≈ {pi_val}")
+                        print(f"Время: {time_val}s, π ≈ {pi_val}")
                 else:
-                    print(f"  ⚠ Не удалось извлечь результаты")
+                    print(f"Не удалось извлечь результаты")
                 
-                time.sleep(0.5)  # Пауза между запусками
+                time.sleep(0.5)
     
     print(f"\n✓ Результаты сохранены в {results_file}\n")
 
 def run_task2_experiments(output_dir, mpiexec_available):
-    """Запуск экспериментов для задачи 2 (матрица × вектор)"""
     print("=" * 60)
     print("ЗАДАЧА 2: Умножение матрицы на вектор")
     print("=" * 60)
@@ -138,7 +134,7 @@ def run_task2_experiments(output_dir, mpiexec_available):
                     
                     if not mpiexec_available:
                         if procs != 1:
-                            print(f"  ⏭ Пропуск (mpiexec недоступен, процессы={procs})")
+                            print(f"Пропуск (mpiexec недоступен, процессы={procs})")
                             continue
                         cmd = f"{executable} {size}"
                     else:
@@ -151,7 +147,6 @@ def run_task2_experiments(output_dir, mpiexec_available):
                     
                     csv_line = parse_csv_output(stdout)
                     if csv_line:
-                        # CSV,algorithm,size,matrix_size,time
                         parts = csv_line.split(',')
                         if len(parts) >= 5:
                             algo = parts[1]
@@ -162,16 +157,15 @@ def run_task2_experiments(output_dir, mpiexec_available):
                             with open(results_file, 'a') as f:
                                 f.write(f"{algo},{procs_val},{size_val},{time_val},{repeat+1}\n")
                             
-                            print(f"  ✓ Время: {time_val}s")
+                            print(f"Время: {time_val}s")
                     else:
-                        print(f"  ⚠ Не удалось извлечь результаты")
+                        print(f"Не удалось извлечь результаты")
                     
                     time.sleep(0.5)
     
-    print(f"\n✓ Результаты сохранены в {results_file}\n")
+    print(f"\nРезультаты сохранены в {results_file}\n")
 
 def main():
-    # Создание директории для результатов
     output_dir = Path('../results')
     output_dir.mkdir(exist_ok=True)
     
@@ -179,7 +173,6 @@ def main():
     print("АВТОМАТИЧЕСКИЙ ЗАПУСК ЭКСПЕРИМЕНТОВ MPI")
     print("=" * 60 + "\n")
     
-    # Проверка наличия исполняемых файлов
     print("Проверка исполняемых файлов...")
     
     missing_files = []
@@ -200,30 +193,28 @@ def main():
         print("  cd task2_matvec && make")
         sys.exit(1)
     
-    print("✓ Все исполняемые файлы найдены\n")
+    print("Все исполняемые файлы найдены\n")
     
     start_time = time.time()
     
-    # Проверка наличия mpiexec
     mpiexec_available = shutil.which("mpiexec") is not None
     if not mpiexec_available:
-        print("⚠ mpiexec не найден в PATH. Будут выполнены только однопроцессные запуски (p=1).")
-        print("  Установите MS-MPI Runtime и добавьте C:\\Program Files\\Microsoft MPI\\Bin в PATH.")
-        print("  Пример временно в PowerShell: $env:Path = 'C:/Program Files/Microsoft MPI/Bin;' + $env:Path")
+        print("mpiexec не найден в PATH. Будут выполнены только однопроцессные запуски (p=1).")
+        print("Установите MS-MPI Runtime и добавьте C:\\Program Files\\Microsoft MPI\\Bin в PATH.")
+        print("Пример временно в PowerShell: $env:Path = 'C:/Program Files/Microsoft MPI/Bin;' + $env:Path")
         print()
 
-    # Запуск экспериментов
     try:
         run_task1_experiments(output_dir, mpiexec_available)
         run_task2_experiments(output_dir, mpiexec_available)
     except KeyboardInterrupt:
-        print("\n\n⚠ Эксперименты прерваны пользователем")
+        print("\n\nЭксперименты прерваны пользователем")
         sys.exit(1)
     
     elapsed = time.time() - start_time
     
     print("=" * 60)
-    print(f"✓ ВСЕ ЭКСПЕРИМЕНТЫ ЗАВЕРШЕНЫ")
+    print(f"ВСЕ ЭКСПЕРИМЕНТЫ ЗАВЕРШЕНЫ")
     print(f"Общее время: {elapsed:.1f} секунд ({elapsed/60:.1f} минут)")
     print("=" * 60)
     print(f"\nРезультаты сохранены в директории: {output_dir.absolute()}")
